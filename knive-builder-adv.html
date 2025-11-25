@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Custom Knife Builder</title>
+
+<style>
+  body {
+    font-family: "Times New Roman", Times, serif;
+    text-align: center;
+    background: #f4f4f4;
+    padding: 40px;
+  }
+
+  .builder-container {
+    background: #fff;
+    max-width: 650px;
+    margin: auto;
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+  }
+
+  .preview-box {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  #knifeCanvas {
+    width: 100%;      /* responsive width */
+    max-width: 600px;
+    height: auto;     /* preserve aspect ratio */
+  }
+
+  select {
+    padding: 10px;
+    margin: 10px;
+    font-size: 16px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+  }
+</style>
+</head>
+
+<body>
+
+<div class="builder-container">
+
+  <h2>Build Your Custom Knife</h2>
+
+  <div class="preview-box">
+    <canvas id="knifeCanvas" width="800" height="350"></canvas>
+  </div>
+
+  <!-- Blade Shape -->
+  <div>
+    <label><strong>Blade Shape:</strong></label>
+    <select id="bladeShape" onchange="updateKnife()">
+      <option value="chef">Chef Knife</option>
+      <option value="prep">Prep Cleaver</option>
+      <option value="sheepfoot">Sheepfoot Skinner</option>
+      <option value="steak">Steak / Paring Knife</option>
+      <option value="straight">Straight Clip Point</option>
+      <option value="texas">Texas Bull Cutter</option>
+      <option value="small-harpoon">Small Harpoon Skinner</option>
+      <option value="leaf-shape">Leaf Shape Skinner</option>
+    </select>
+  </div>
+
+  <!-- Handle Material -->
+  <div>
+    <label><strong>Handle Material:</strong></label>
+    <select id="handleMaterial" onchange="updateKnife()">
+      <option value="blackpalmwood">Black Palm Wood</option>
+      <option value="tanmicarta">Tan Micarta</option>
+      <option value="blackmicarta">Black Micarta</option>
+      <option value="rosewood">Rose Wood</option>
+    </select>
+  </div>
+
+</div>
+
+<script>
+const canvas = document.getElementById("knifeCanvas");
+const ctx = canvas.getContext("2d");
+
+// Load image by filename from the same folder
+function loadImage(filename) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.src = filename;
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(`Failed to load ${filename}`);
+  });
+}
+
+async function updateKnife() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  const bladeKey = document.getElementById("bladeShape").value;
+  const handleKey = document.getElementById("handleMaterial").value;
+
+  const outlineFile = bladeKey + "-outline.png";
+  const maskFile = bladeKey + "-mask.png";
+  const handleTextureFile = handleKey + "-texture.jpg";
+
+  try {
+    // Load all images at the same time
+    const [outline, mask, handleTexture] = await Promise.all([
+      loadImage(outlineFile),
+      loadImage(maskFile),
+      loadImage(handleTextureFile)
+    ]);
+
+    // Save context to isolate composite operations
+    ctx.save();
+
+    // STEP 1 — Draw handle texture first
+    ctx.drawImage(handleTexture, 100, 40, 600, 250);
+
+    // STEP 2 — Apply mask to limit texture to handle area
+    ctx.globalCompositeOperation = "destination-in";
+    ctx.drawImage(mask, 100, 40, 600, 250);
+
+    // Restore context to draw outline normally
+    ctx.restore();
+
+    // STEP 3 — Draw outline on top
+    ctx.globalCompositeOperation = "source-over";
+    ctx.drawImage(outline, 100, 40, 600, 250);
+
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+// Run immediately so a knife appears before selections
+updateKnife();
+</script>
+
+</body>
+</html>
+
